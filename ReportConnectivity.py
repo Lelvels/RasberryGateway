@@ -53,11 +53,11 @@ def main():
         print(desired_data)
         print("Sending data as reported property...")
         
-        while ser.readline():
-            reported_patch = get_sensor_data()
-            print(reported_patch)
-            client.patch_twin_reported_properties(reported_patch)
-            print("Reported properties updated")
+        # while ser.readline():
+        #     reported_patch = get_sensor_data()
+        #     print(reported_patch)
+        #     client.patch_twin_reported_properties(reported_patch)
+        #     print("Reported properties updated")
             
     except KeyboardInterrupt:
         print("Iot Hub Device Twin device sample stopped")
