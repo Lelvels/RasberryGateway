@@ -1,4 +1,5 @@
 from http import client
+from pydoc import cli
 import time
 from azure.iot.device import IoTHubModuleClient
 from janus import T
@@ -28,22 +29,18 @@ def get_sensor_data():
     }
     return dict
 
-def get_desired_data():
-    
-    return 
+def get_desired_data(client, arduino_id):
+    twin_patch = client.receive_twin_desired_properties_patch()
+    myData = twin_patch['DesiredParameters'][arduino_id]
+    desired_data = {arduino_id : myData}
+    return desired_data
 
 #Hàm để tạo client
 def create_client():
-    client = IoTHubModuleClient.create_from_connection_string(CONNECTION_STRING)
-    def twin_patch_handler(twin_patch):
-        print("Twin patch received:")
-        print(twin_patch)
     try:
-        #Set handler on the client
-        client.on_twin_desired_properties_patch_received = twin_patch_handler
+        client = IoTHubModuleClient.create_from_connection_string(CONNECTION_STRING)
     except:
         client.shutdown()
-    
     return client
 
 def main():
@@ -51,13 +48,17 @@ def main():
     client = create_client()
     print("IoTHubModuleClient waiting for commands")
     
-    try:
+    try:    
+        desired_data = get_desired_data(client=client, arduino_id="AR01")
+        print(desired_data)
         print("Sending data as reported property...")
+        
         while ser.readline():
             reported_patch = get_sensor_data()
             print(reported_patch)
             client.patch_twin_reported_properties(reported_patch)
             print("Reported properties updated")
+            
     except KeyboardInterrupt:
         print("Iot Hub Device Twin device sample stopped")
     finally:

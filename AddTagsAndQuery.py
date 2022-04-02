@@ -64,9 +64,18 @@ def print_query_result(title, query_result):
 
 def iothub_service_sample_run():
     try:
+        #Sample data
         arduino_id = "AR01"
         desired_humid = 80
         desired_temp = 20
+        
+        new_tags = {
+            'location' : {
+                'region' : 'VN',
+                'plant' : 'HaNoi'
+            }
+        }
+        
         iothub_registry_manager = IoTHubRegistryManager(IOTHUB_CONNECTION_STRING)
         desired_parameters = get_desired_data(arduino_id, desired_humid, desired_temp)
         print(desired_parameters)
@@ -74,7 +83,7 @@ def iothub_service_sample_run():
         #B1: lấy ra twin từ thiết bị
         twin = iothub_registry_manager.get_twin(DEVICE_ID)
         #B2: khởi tạo twin, lưu ý, chỉ có thể thêm vào tags twin và desired twin !
-        twin_patch = Twin(properties = TwinProperties(desired = desired_parameters))
+        twin_patch = Twin(tags=new_tags, properties=TwinProperties(desired = desired_parameters))
         twin = iothub_registry_manager.update_twin(DEVICE_ID, twin_patch, twin.etag)
 
         # Add a delay to account for any latency before executing the query
@@ -84,7 +93,6 @@ def iothub_service_sample_run():
         sql = "SELECT * FROM devices WHERE deviceId = 'demorasberry'"
         query_spec = QuerySpecification(query= sql)
         query_result = iothub_registry_manager.query_iot_hub(query_spec, None, 100)
-        #print("Devices in Hanoi plant: {}".format(', '.join([twin.device_id for twin in query_result.items])))
         print_query_result("Demo Rasberrypi device twin" ,query_result)
         
         #In reported parameters
@@ -93,11 +101,6 @@ def iothub_service_sample_run():
         print("Arduino sensor data {0}: ".format(arduino_id))
         print("Humidity = {0}".format(sensor_data['SensorParameters'][arduino_id]['Humidity']))
         print("Temperature = {0}".format(sensor_data['SensorParameters'][arduino_id]['Temperature']))
-        
-        #sleep(1)
-        # query_spec = QuerySpecification(query="SELECT * FROM devices WHERE tags.location.plant = 'Hanoi' AND properties.reported.connectivity = 'cellular'")
-        # query_result = iothub_registry_manager.query_iot_hub(query_spec, None, 100)
-        # print("Devices in Redmond43 plant using cellular network: {}".format(', '.join([twin.device_id for twin in query_result.items])))
 
     except Exception as ex:
         print("Unexpected error {0}".format(ex))
