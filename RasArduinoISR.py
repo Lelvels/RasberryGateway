@@ -22,10 +22,7 @@ def is_json(element) -> bool:
     return True
 
 def create_client(connection_string):
-    try:
-        client = IoTHubModuleClient.create_from_connection_string(connection_string)
-    except:
-        client.shutdown()
+    client = IoTHubModuleClient.create_from_connection_string(connection_string)
     return client
 
 def get_sensor_data(reported_data):
@@ -73,15 +70,20 @@ async def main():
         client.connect()
         print("Connected")
         #End of Init code
+        #Thêm handler vào nhưng bị lỗi không cập nhật ???
+        
+        desired_data = get_desired_data(client)
+        ser.write(desired_data);
+        print("Desired data sent: ", desired_data)
+        
+        def desired_handler(patch):
+            desired_data = standard_desired_data(patch=patch)
+            print("Desired data update: ", desired_data)
+            ser.write(desired_data)
+        
+        client.on_twin_desired_properties_patch_received = desired_handler
         
         def uart_listener():
-            #Thêm handler vào nhưng bị lỗi không cập nhật ???
-            #desired_data = get_desired_data(client)
-            # def desired_handler(patch):
-            #     desired_data = standard_desired_data(patch=patch)
-            #     print("Desired data update: ", desired_data)
-            # client.on_twin_desired_properties_patch_received = desired_handler
-            
             while True:
                 #Wait for arduino to send reported data
                 if ser.in_waiting > 0:
@@ -96,12 +98,6 @@ async def main():
                         print("DHT error!")
                     else:
                         print("Exception string!")
-                    
-                    #Send desired data
-                    desired_data = get_desired_data(client)
-                    ser.write(desired_data)
-                    print(desired_data)
-                    print("Desired data sent!")
             
         # Run the stdin listener in the event loop
         loop = asyncio.get_running_loop()
@@ -111,6 +107,8 @@ async def main():
         await user_finished
     except KeyboardInterrupt:
         print("Rasberry stopped")
+    except ConnectionAbortedError:
+        print("Connection error!");
     finally:
         ser.close()
         client.shutdown()

@@ -67,7 +67,7 @@ def iothub_service_sample_run():
         #Sample data
         arduino_id = "AR01"
         desired_humid = 80
-        desired_temp = 20
+        desired_temp = 25.33
         
         new_tags = {
             'location' : {

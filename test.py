@@ -36,20 +36,13 @@ def get_sensor_data(reported_data):
 def get_desired_data(client, arduino_id):
     twin_patch = client.receive_twin_desired_properties_patch()
     myData = twin_patch['DesiredParameters'][arduino_id]
-    humid = myData['Humidity']
-    temp = myData['Temperature']
-    desired_data = {
-        "ArduinoId" : arduino_id,
-        "Humidity" : humid,
-        "Temperature" : temp
-    }
+    desired_data = {arduino_id : myData}
     return desired_data
 
 #Hàm để tạo client
 def create_client():
     try:
         client = IoTHubModuleClient.create_from_connection_string(CONNECTION_STRING)
-        client.connect()
     except:
         client.shutdown()
     return client
@@ -59,17 +52,11 @@ def main():
     client = create_client()
     print("IoTHubModuleClient waiting for commands")
     try:
-        twin_patch = client.on_twin_desired_properties_patch_received
-        print(twin_patch)
-        time.sleep(1)
-        
-        # reported = """{"ArduinoId":"AR01","Humidity":90,"Temperature": 27,"LuminousIntensity":102}"""
-        # reported_patch = get_sensor_data(reported)
-        # print(reported_patch)
-        # client.patch_twin_reported_properties(reported_patch)
-        # print("Reported properties updated")  
-        # time.sleep(1)
-        
+        while ser.readline():
+            reported_patch = get_sensor_data()
+            print(reported_patch)
+            client.patch_twin_reported_properties(reported_patch)
+            print("Reported properties updated")        
     except KeyboardInterrupt:
         print("Iot Hub Device Twin device sample stopped")
     finally:
@@ -78,4 +65,4 @@ def main():
         client.shutdown()
 
 if __name__ == '__main__':
-    main()
+    main()    

@@ -1,3 +1,4 @@
+from ast import Num
 from http import client
 from pickle import GLOBAL
 from tempfile import tempdir
@@ -70,7 +71,8 @@ def standard_desired_data(patch):
     temp = desired_data['Temperature']
     humid = desired_data['Humidity']
     desired = {'ArduinoId':arduino_id, 'Humidity':humid, 'Temperature':temp}
-    result_string = json.dumps(desired).rstrip()
+    result_string = json.dumps(desired)
+    result_string = result_string + '\n'
     return result_string
 
 async def main():
@@ -97,31 +99,25 @@ async def main():
 
             client.on_twin_desired_properties_patch_received = desired_handler
             
-            while True: 
-                if ser.in_waiting:
-                    receive_string = ser.readline().decode('unicode_escape').rstrip()
-                    #Print the data received from Arduino to the terminal
-                    if (receive_string == "AR01"):
-                        print("Reported data receiver start!")
-                        ser.write("ACK".encode('unicode_escape'))
-                    elif (receive_string == "SENSOR_ERR"):
-                        print("Arduino failed to read from sensor!")
-                    elif (receive_string == "STOP"):
-                        #Nhan du chuoi va bat dau gui len cloud
-                        print(desired_data)
-                        ser.write(desired_data.encode('unicode_escape'))
-                        print("Reported data receiver stop!")
-                        time.sleep(1)
-                    else:
-                        if(is_json(receive_string)):
-                            reported_data = receive_string
-                            reported_patch = get_sensor_data(reported_data)
-                            print("Reported patch: {0}".format(reported_data))
-                            #client.patch_twin_reported_properties(reported_patch)
-                            print("Reported properties updated!")
-                        else:
-                            print(receive_string)
-               
+            i = 0;
+            
+            while True:
+                i += 1 
+                print("Rasberry loop number: ", i)
+                receive_string = ser.readline().decode('unicode_escape').rstrip()
+                #Print the data received from Arduino to the terminal
+                if (is_json(receive_string)):
+                    print("Reported data received: ", receive_string)
+                elif (receive_string == "SENSOR_ERR"):
+                    print("Arduino failed to read from sensor!")
+                else:
+                    print("Receive string: ", receive_string)
+                
+                #Gửi data về arduino
+                print("Start transfer desired data")
+                ser.write(desired_data.encode('unicode_escape'))
+                print("Stop transfer desired data")
+            
         # Run the stdin listener in the event loop
         loop = asyncio.get_running_loop()
         user_finished = loop.run_in_executor(None, uart_listener)
