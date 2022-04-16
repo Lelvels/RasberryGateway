@@ -1,3 +1,4 @@
+from email import message
 from importlib.util import decode_source
 import json
 from pydoc import cli
@@ -5,7 +6,7 @@ from requests import patch
 import serial # Module needed for serial communication
 import asyncio
 import json
-from azure.iot.device import IoTHubModuleClient
+from azure.iot.device import IoTHubModuleClient, IoTHubDeviceClient, Message
 
 def is_float(element) -> bool:
     try:
@@ -48,7 +49,6 @@ def get_desired_data(client):
         humid = twin['desired']['DesiredParameters'][arduino_id]['Humidity']
         desired = {'ArduinoId': arduino_id, 'Humidity': humid, 'Temperature': temp}
         send_string = json.dumps(desired)
-        send_string = send_string
     return send_string.encode('unicode_escape')
         
 def standard_desired_data(patch):
@@ -70,18 +70,17 @@ async def main():
         client.connect()
         print("Connected")
         #End of Init code
-        #Thêm handler vào nhưng bị lỗi không cập nhật ???
-        
-        desired_data = get_desired_data(client)
-        ser.write(desired_data);
-        print("Desired data sent: ", desired_data)
-        
+        #Thêm handler vào
         def desired_handler(patch):
             desired_data = standard_desired_data(patch=patch)
             print("Desired data update: ", desired_data)
             ser.write(desired_data)
         
         client.on_twin_desired_properties_patch_received = desired_handler
+        
+        ser.write(get_desired_data(client))
+        ser.write(get_desired_data(client))
+        print("Desired data sent: ", get_desired_data(client))
         
         def uart_listener():
             while True:
@@ -90,12 +89,22 @@ async def main():
                     line = ser.readline().decode('utf-8').rstrip()
                     print(line)
                     if is_json(line): 
-                        report_data = get_sensor_data(line);
+                        report_data = get_sensor_data(line)
                         print(report_data)
-                        client.patch_twin_reported_properties(report_data)
-                        print("Reported properties updated")
+                        #Using device twin
+                        # client.patch_twin_reported_properties(report_data)
+                        # print("Reported properties updated")
+                        # print("")
+                        #Using telementry
+                        message = Message(line)
+                        print("Message sending: ", message)
+                        client.send_message(message=message)
+                        print("Message sent!")
+                        print("")
                     elif line == "DHT_ERR":
                         print("DHT error!")
+                    elif line == "JSON_ERR":
+                        print("Arduino cannot deserialize json!")
                     else:
                         print("Exception string!")
             
