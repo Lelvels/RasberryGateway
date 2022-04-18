@@ -31,11 +31,15 @@ def get_sensor_data(reported_data):
     arduino_id = data["ArduinoId"] 
     humid = data["Humidity"]
     temp = data["Temperature"]
+    soil = data["SoilMoisture"]
+    co2 = data["CO2"]
     dict ={ 
         'SensorParameters' : {
             arduino_id : {
                 'Humidity' : humid,
-                'Temperature' : temp    
+                'Temperature' : temp,
+                'SoilMoisture' : soil,
+                'CO2' : co2
             }
         }
     }
@@ -45,9 +49,17 @@ def get_desired_data(client):
     twin = client.get_twin()
     if 'desired' in twin:
         arduino_id = "AR01"
-        temp = twin['desired']['DesiredParameters'][arduino_id]['Temperature']
-        humid = twin['desired']['DesiredParameters'][arduino_id]['Humidity']
-        desired = {'ArduinoId': arduino_id, 'Humidity': humid, 'Temperature': temp}
+        desired_data = twin['desired']['DesiredParameters'][arduino_id]
+        temp = desired_data['Temperature']
+        humid = desired_data['Humidity']
+        co2 = desired_data['CO2']
+        fanIn = desired_data['FanInState']
+        fanOut = desired_data['FanOutState']
+        humidState = desired_data['HumidifierState']
+        LedState = desired_data['LedState']
+        desired = {'ArduinoId': arduino_id, 'Humidity': humid, 'Temperature': temp, 'CO2' : co2,
+                   'FanInState' : fanIn, 'FanOutState' : fanOut, 'HumidifierState' : humidState,
+                   'LedState' : LedState}
         send_string = json.dumps(desired)
     return send_string.encode('unicode_escape')
         
@@ -56,7 +68,16 @@ def standard_desired_data(patch):
     desired_data = patch['DesiredParameters'][arduino_id]
     temp = desired_data['Temperature']
     humid = desired_data['Humidity']
-    desired = {'ArduinoId':arduino_id, 'Humidity':humid, 'Temperature':temp}
+    co2 = desired_data['CO2']
+    fanIn = desired_data['FanInState']
+    fanOut = desired_data['FanOutState']
+    humidState = desired_data['HumidifierState']
+    LedState = desired_data['LedState']
+    
+    desired = {'ArduinoId': arduino_id, 'Humidity': humid, 'Temperature': temp, 'CO2' : co2,
+                   'FanInState' : fanIn, 'FanOutState' : fanOut, 'HumidifierState' : humidState,
+                   'LedState' : LedState}
+    
     result_string = json.dumps(desired)
     return result_string.encode('unicode_escape')
 
@@ -86,7 +107,7 @@ async def main():
             while True:
                 #Wait for arduino to send reported data
                 if ser.in_waiting > 0:
-                    line = ser.readline().decode('utf-8').rstrip()
+                    line = ser.readline().decode('unicode_escape').rstrip()
                     print(line)
                     if is_json(line): 
                         report_data = get_sensor_data(line)
@@ -104,7 +125,12 @@ async def main():
                     elif line == "DHT_ERR":
                         print("DHT error!")
                     elif line == "JSON_ERR":
-                        print("Arduino cannot deserialize json!")
+                        print("Arduino cannot deserialize json, sending desired again!")
+                        ser.write(get_desired_data(client))
+                    elif line == "CO2_ERR":
+                        print("CO2 sensor error !")
+                    elif line == "SOIL_ERR":
+                        print("Soil moisure sensor error!")
                     else:
                         print("Exception string!")
             
