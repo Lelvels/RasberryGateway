@@ -95,7 +95,7 @@ def iothub_service_sample_run():
         query_result = iothub_registry_manager.query_iot_hub(query_spec, None, 100)
         print_query_result("Demo Rasberrypi device twin" ,query_result)
         
-        #In reported parameters
+        #In reported parameters - lấy từ device twin
         d = query_result.items[0]
         sensor_data = d.properties.reported
         print("Arduino sensor data {0}: ".format(arduino_id))
