@@ -19,7 +19,6 @@ import asyncio
 from azure.eventhub import TransportType
 from azure.eventhub.aio import EventHubConsumerClient
 
-
 # Event Hub-compatible endpoint
 # az iot hub show --query properties.eventHubEndpoints.events.endpoint --name {your IoT Hub name}
 EVENTHUB_COMPATIBLE_ENDPOINT = "sb://ihsuprodsgres009dednamespace.servicebus.windows.net/"

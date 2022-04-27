@@ -110,9 +110,9 @@ async def main():
                     line = ser.readline().decode('unicode_escape').rstrip()
                     print(line)
                     if is_json(line): 
-                        report_data = get_sensor_data(line)
-                        print(report_data)
                         #Using device twin
+                        # report_data = get_sensor_data(line)
+                        # print(report_data)
                         # client.patch_twin_reported_properties(report_data)
                         # print("Reported properties updated")
                         # print("")
