@@ -51,35 +51,19 @@ def get_desired_data(client):
         arduino_id = "AR01"
         desired_data = twin['desired']['DesiredParameters'][arduino_id]
         temp = desired_data['Temperature']
-        humid = desired_data['Humidity']
-        co2 = desired_data['CO2']
-        fanIn = desired_data['FanInState']
-        fanOut = desired_data['FanOutState']
-        humidState = desired_data['HumidifierState']
+        min_humid = desired_data['MinHumidity']
+        max_humid = desired_data['MaxHumidity']
+        min_co2 = desired_data['MinCO2']
+        max_co2 = desired_data['MaxCO2']
+        disable = desired_data['Disable']
         LedState = desired_data['LedState']
-        desired = {'ArduinoId': arduino_id, 'Humidity': humid, 'Temperature': temp, 'CO2' : co2,
-                   'FanInState' : fanIn, 'FanOutState' : fanOut, 'HumidifierState' : humidState,
+        desired = {'ArduinoId': arduino_id, 'Temperature': temp, 
+                   'MinHumidity': min_humid, 'MaxHumidity': max_humid,
+                   'MinCO2' : min_co2, 'MaxCO2' : max_co2,
+                   'Disable' : disable,
                    'LedState' : LedState}
         send_string = json.dumps(desired)
     return send_string.encode('unicode_escape')
-        
-def standard_desired_data(patch):
-    arduino_id = "AR01"
-    desired_data = patch['DesiredParameters'][arduino_id]
-    temp = desired_data['Temperature']
-    humid = desired_data['Humidity']
-    co2 = desired_data['CO2']
-    fanIn = desired_data['FanInState']
-    fanOut = desired_data['FanOutState']
-    humidState = desired_data['HumidifierState']
-    LedState = desired_data['LedState']
-    
-    desired = {'ArduinoId': arduino_id, 'Humidity': humid, 'Temperature': temp, 'CO2' : co2,
-                   'FanInState' : fanIn, 'FanOutState' : fanOut, 'HumidifierState' : humidState,
-                   'LedState' : LedState}
-    
-    result_string = json.dumps(desired)
-    return result_string.encode('unicode_escape')
 
 async def main():
     try:
@@ -90,19 +74,7 @@ async def main():
         print("Connecting to client")
         client.connect()
         print("Connected")
-        #End of Init code
-        #Thêm handler vào
-        def desired_handler(patch):
-            desired_data = standard_desired_data(patch=patch)
-            print("Desired data update: ", desired_data)
-            ser.write(desired_data)
-        
-        client.on_twin_desired_properties_patch_received = desired_handler
-        
-        ser.write(get_desired_data(client))
-        ser.write(get_desired_data(client))
-        print("Desired data sent: ", get_desired_data(client))
-        
+
         def uart_listener():
             while True:
                 #Wait for arduino to send reported data
@@ -110,28 +82,26 @@ async def main():
                     line = ser.readline().decode('unicode_escape').rstrip()
                     print(line)
                     if is_json(line): 
-                        #Using device twin
-                        # report_data = get_sensor_data(line)
-                        # print(report_data)
-                        # client.patch_twin_reported_properties(report_data)
-                        # print("Reported properties updated")
-                        # print("")
                         #Using telementry
                         message = Message(line)
                         print("Message sending: ", message)
                         client.send_message(message=message)
                         print("Message sent!")
-                        print("")
+                        ser.write(get_desired_data(client))
+                        print("Desired JSON sent!");
                     elif line == "DHT_ERR":
                         print("DHT error!")
                     elif line == "JSON_ERR":
                         print("Arduino cannot deserialize json, sending desired again!")
+                        print();
+                        ser.flush();
                         ser.write(get_desired_data(client))
                     elif line == "CO2_ERR":
                         print("CO2 sensor error !")
                     elif line == "SOIL_ERR":
                         print("Soil moisure sensor error!")
                     else:
+                        print();
                         print("Exception string!")
             
         # Run the stdin listener in the event loop
